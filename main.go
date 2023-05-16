@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// 启动HTTPServer
-	err = httpServer.Start("localhost:8080")
+	err = httpServer.Start("localhost:8080", 10)
 	if err != nil {
 		fmt.Println(err)
 		return
