@@ -2,120 +2,35 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"log"
-	"net"
-	"net/http"
+
+	"github.com/hewenyu/udpxy-go/server"
+	"github.com/hewenyu/udpxy-go/udp"
 )
 
-type UDPReceiver struct {
-	conn        *net.UDPConn
-	dataChannel chan []byte
-}
-
-func (u *UDPReceiver) Start(interfaceName string, port int) error {
-	iface, err := net.InterfaceByName(interfaceName)
-	if err != nil {
-		return err
-	}
-
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return err
-	}
-
-	ip, _, err := net.ParseCIDR(addrs[0].String())
-	if err != nil {
-		return err
-	}
-
-	udpAddr := &net.UDPAddr{
-		IP:   ip,
-		Port: port,
-	}
-	u.conn, err = net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		buffer := make([]byte, 1024)
-		for {
-			n, _, err := u.conn.ReadFromUDP(buffer)
-			if err != nil {
-				// handle error
-				log.Fatal(err)
-			}
-			// Here you should handle RTP and MPEG-TS payloads
-			u.dataChannel <- buffer[:n]
-		}
-	}()
-	return nil
-}
-
-type HTTPServer struct {
-	server      *http.Server
-	dataChannel chan []byte
-}
-
-type channelReader struct {
-	ch chan []byte
-}
-
-func (cr *channelReader) Read(p []byte) (n int, err error) {
-	data := <-cr.ch
-	n = copy(p, data)
-	if n < len(data) {
-		err = io.ErrShortBuffer
-	}
-	return n, err
-}
-
-func (h *HTTPServer) Start(address string) error {
-	reader := &channelReader{ch: h.dataChannel}
-
-	h.server = &http.Server{
-		Addr: address,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Here you should parse HTTP commands and act accordingly
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.WriteHeader(http.StatusOK)
-			io.Copy(w, reader)
-		}),
-	}
-
-	go func() {
-		if err := h.server.ListenAndServe(); err != nil {
-			// handle error
-			log.Fatal(err)
-		}
-	}()
-	return nil
-}
-
-// main function as before...
 func main() {
+	// 创建一个数据channel
 	dataChannel := make(chan []byte, 100)
 
-	udpReceiver := &UDPReceiver{
-		dataChannel: dataChannel,
-	}
-	httpServer := &HTTPServer{
-		dataChannel: dataChannel,
-	}
+	// 创建一个UDPReceiver
+	udpReceiver := udp.NewUDPReceiver(dataChannel)
 
-	err := udpReceiver.Start("eth0", 12345)
+	// 创建一个HTTPServer
+	httpServer := server.NewHTTPServer(dataChannel)
+
+	// 启动UDPReceiver
+	err := udpReceiver.Start("eth0", "224.0.0.1:12345")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	// 启动HTTPServer
 	err = httpServer.Start("localhost:8080")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	// Prevent the main function from exiting
+	// 阻止主函数退出
 	select {}
 }
