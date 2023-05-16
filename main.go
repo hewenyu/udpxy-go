@@ -2,20 +2,20 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hewenyu/udpxy-go/server"
 	"github.com/hewenyu/udpxy-go/udp"
 )
 
 func main() {
-	// 创建一个数据channel
-	dataChannel := make(chan []byte, 100)
+	pool := &sync.Map{}
 
 	// 创建一个UDPReceiver
-	udpReceiver := udp.NewUDPReceiver(dataChannel)
+	udpReceiver := udp.NewUDPReceiver(pool)
 
 	// 创建一个HTTPServer
-	httpServer := server.NewHTTPServer(dataChannel)
+	httpServer := server.NewHTTPServer(pool)
 
 	// 启动UDPReceiver
 	err := udpReceiver.Start("eth0", "224.0.0.1:12345")
