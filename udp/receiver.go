@@ -1,3 +1,4 @@
+// for receiver udp packets
 package udp
 
 type Receiver interface {
