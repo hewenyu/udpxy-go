@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 )
@@ -43,6 +44,7 @@ func (u *UDPReceiver) Start(interfaceName string, port int) error {
 			n, _, err := u.conn.ReadFromUDP(buffer)
 			if err != nil {
 				// handle error
+				log.Fatal(err)
 			}
 			// Here you should handle RTP and MPEG-TS payloads
 			u.dataChannel <- buffer[:n]
@@ -85,6 +87,7 @@ func (h *HTTPServer) Start(address string) error {
 	go func() {
 		if err := h.server.ListenAndServe(); err != nil {
 			// handle error
+			log.Fatal(err)
 		}
 	}()
 	return nil
