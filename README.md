@@ -5,6 +5,12 @@ udpxy go 版本的
 
 # 简单设计：
 
-UDP多播接收器：创建一个goroutine，其任务是监听eth0上的UDP多播地址和端口。当接收到数据时，将其存储在内存中的一个缓冲区（比如一个channel）。
+UDPReceiver模块：该模块负责接收UDP多播流。它应该有一个Start方法用于开始接收数据，并将接收到的数据写入一个channel。此外，它还需要能够处理RTP和MPEG-TS负载。
 
-HTTP服务器：创建一个HTTP服务器，监听eth1上特定的端口。当接收到一个HTTP请求时，服务器将从缓冲区中取出数据，并将其作为HTTP响应发送给请求的客户端。
+HTTPServer模块：该模块负责处理HTTP请求。它应该有一个Start方法用于开始监听HTTP请求，并从channel中读取数据，将数据作为HTTP响应发送给客户端。此外，它还需要能够解析HTTP命令，并根据命令执行相应的操作。
+
+CommandHandler模块：该模块负责处理HTTP命令。它应该有一个HandleCommand方法用于处理命令，并返回相应的结果。
+
+Logger模块：该模块负责记录日志。它应该有一个Log方法用于记录日志信息。
+
+Main模块：该模块负责启动UDPReceiver和HTTPServer，以及处理它们之间的数据流
