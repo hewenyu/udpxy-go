@@ -43,7 +43,7 @@ func TestSaveDisk(t *testing.T) {
 	rtpDec := forma.CreateDecoder()
 
 	// setup H264 -> MPEG-TS muxer
-	mpegtsMuxer, err := newMPEGTSMuxer(forma.SPS, forma.PPS)
+	mpegtsMuxer, err := newMPEGTSMuxer(forma.SPS, forma.PPS, "test.ts")
 	if err != nil {
 		t.Fatal(err)
 	}

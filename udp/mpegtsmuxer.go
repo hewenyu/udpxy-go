@@ -25,8 +25,8 @@ type mpegtsMuxer struct {
 }
 
 // newMPEGTSMuxer allocates a mpegtsMuxer.
-func newMPEGTSMuxer(sps []byte, pps []byte) (*mpegtsMuxer, error) {
-	f, err := os.Create("mystream.ts")
+func newMPEGTSMuxer(sps []byte, pps []byte, filename string) (*mpegtsMuxer, error) {
+	f, err := os.Create(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +49,18 @@ func newMPEGTSMuxer(sps []byte, pps []byte) (*mpegtsMuxer, error) {
 }
 
 // close closes all the mpegtsMuxer resources.
-func (e *mpegtsMuxer) close() {
-	e.b.Flush()
-	e.f.Close()
+func (e *mpegtsMuxer) close() error {
+	if e.b != nil {
+		if err := e.b.Flush(); err != nil {
+			return err
+		}
+	}
+	if e.f != nil {
+		if err := e.f.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // encode encodes a H264 access unit into MPEG-TS.
