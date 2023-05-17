@@ -2,12 +2,12 @@ package utils
 
 import "io"
 
-// ChannelReader 是一个结构，它包装了一个channel并实现了io.Reader接口
+// ChannelReader is a reader that reads from a channel
 type ChannelReader struct {
-	ch chan []byte // 数据channel
+	ch chan []byte // channel to read from
 }
 
-// Read 方法从channel读取数据并将其复制到提供的缓冲区
+// Read channel reader
 func (cr *ChannelReader) Read(p []byte) (n int, err error) {
 	data := <-cr.ch
 	n = copy(p, data)
