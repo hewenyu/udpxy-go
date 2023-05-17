@@ -48,6 +48,11 @@ func newMPEGTSMuxer(sps []byte, pps []byte, filename string) (*mpegtsMuxer, erro
 	}, nil
 }
 
+// Close closes the mpegtsMuxer.
+func (e *mpegtsMuxer) Close() error {
+	return e.close()
+}
+
 // close closes all the mpegtsMuxer resources.
 func (e *mpegtsMuxer) close() error {
 	if e.b != nil {

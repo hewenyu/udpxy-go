@@ -17,7 +17,7 @@ type HTTPServer struct {
 	sem    chan struct{} // a semaphore for limiting the number of active connections
 }
 
-// Start 方法启动HTTP服务器，该服务器从channel读取数据并将其写入HTTP响应
+// Start listens on the specified address and starts serving HTTP requests
 func (h *HTTPServer) Start(address string, maxConnections int) error {
 	// create a semaphore with the specified size
 	h.sem = make(chan struct{}, maxConnections)
@@ -48,6 +48,7 @@ func (h *HTTPServer) Start(address string, maxConnections int) error {
 			n, err := io.Copy(w, reader)
 			if err != nil {
 				// handle error
+				log.Println(err)
 			}
 			log.Printf("%s %s %d [%s]", r.RemoteAddr, r.URL.Path, n, r.UserAgent())
 		}),
@@ -56,6 +57,7 @@ func (h *HTTPServer) Start(address string, maxConnections int) error {
 	go func() {
 		if err := h.server.ListenAndServe(); err != nil {
 			// handle error
+			log.Fatal(err)
 		}
 	}()
 

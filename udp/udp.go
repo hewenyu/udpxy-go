@@ -1,6 +1,7 @@
 package udp
 
 import (
+	"log"
 	"net"
 	"sync"
 )
@@ -11,6 +12,7 @@ type UDPReceiver struct {
 	pool *sync.Map
 }
 
+// Start listens for UDP packets on the specified interface and multicast address
 func (u *UDPReceiver) Start(interfaceName string, multicastAddress string) error {
 	iface, err := net.InterfaceByName(interfaceName)
 	if err != nil {
@@ -33,6 +35,8 @@ func (u *UDPReceiver) Start(interfaceName string, multicastAddress string) error
 			n, _, err := u.conn.ReadFromUDP(buffer)
 			if err != nil {
 				// handle error
+				log.Println(err)
+				continue
 			}
 
 			u.pool.Range(func(key, value interface{}) bool {
