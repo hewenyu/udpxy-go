@@ -26,9 +26,7 @@ build-openwrt: mkdir
 FORCE:
 
 dependencies:
-	@echo "Updating system and installing dependencies..."
-	@sudo apt update
-	@sudo apt install libavcodec-dev libavutil-dev libswscale-dev
+	@echo "Checking dependencies..."
 	@test -f "${GO}" && test -x "${GO}"  || (echo "Missing go binary" && exit 1)
 
 mkdir:
