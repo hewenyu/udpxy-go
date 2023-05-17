@@ -12,6 +12,7 @@ import (
 	"github.com/pion/rtp"
 )
 
+// RTPReceiver is a RTP receiver
 type RTPReceiver struct {
 	conn *gortsplib.Client
 	pool *sync.Map
@@ -20,32 +21,9 @@ type RTPReceiver struct {
 // Start listening for incoming packets
 func (r *RTPReceiver) Start(interfaceName string, rtspUrl string) error {
 	// find out the local IP of the interface
-	iface, err := net.InterfaceByName(interfaceName)
+	localIP, err := getIPv4(interfaceName)
 	if err != nil {
 		return err
-	}
-
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return err
-	}
-
-	// use the first IPv4 address
-	var localIP net.IP
-	for _, addr := range addrs {
-		ip, _, err := net.ParseCIDR(addr.String())
-		if err != nil {
-			continue
-		}
-
-		if ip.To4() != nil {
-			localIP = ip
-			break
-		}
-	}
-
-	if localIP == nil {
-		return fmt.Errorf("no IPv4 address found for interface %s", interfaceName)
 	}
 
 	client := gortsplib.Client{
@@ -64,7 +42,7 @@ func (r *RTPReceiver) Start(interfaceName string, rtspUrl string) error {
 	if err != nil {
 		return err
 	}
-
+	// connect to the server
 	err = client.Start(u.Scheme, u.Host)
 	if err != nil {
 		return err
@@ -75,6 +53,7 @@ func (r *RTPReceiver) Start(interfaceName string, rtspUrl string) error {
 		return err
 	}
 
+	// find the H264 media and format
 	var forma *formats.H264
 	medi := medias.FindFormat(&forma)
 	if medi == nil {
@@ -102,6 +81,7 @@ func (r *RTPReceiver) Start(interfaceName string, rtspUrl string) error {
 	return nil
 }
 
+// NewRTPReceiver creates a new RTPReceiver
 func NewRTPReceiver(pool *sync.Map) *RTPReceiver {
 	return &RTPReceiver{
 		pool: pool,
