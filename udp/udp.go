@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// UDPReceiver 是一个结构，它包含一个UDP连接和一个数据channel
+// UDPReceiver is a UDP receiver
 type UDPReceiver struct {
 	conn *net.UDPConn
 	pool *sync.Map
@@ -14,6 +14,9 @@ type UDPReceiver struct {
 
 // Start listens for UDP packets on the specified interface and multicast address
 func (u *UDPReceiver) Start(interfaceName string, multicastAddress string) error {
+	// interfaceName is a string like "eth0"
+	// multicastAddress is a string like "igmp://192.168.199.10:12345"
+
 	iface, err := net.InterfaceByName(interfaceName)
 	if err != nil {
 		return err

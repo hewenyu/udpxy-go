@@ -2,5 +2,5 @@
 package udp
 
 type Receiver interface {
-	Start() error // Start listening for incoming packets
+	Start(interfaceName string, multicastAddress string) error // Start listening for incoming packets
 }

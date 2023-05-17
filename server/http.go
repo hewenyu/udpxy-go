@@ -10,7 +10,7 @@ import (
 	"github.com/hewenyu/udpxy-go/utils"
 )
 
-// HTTPServer 是一个结构，它包含一个HTTP服务器和一个数据channel
+// HTTPServer  is a HTTP server that serves MPEG-TS over HTTP
 type HTTPServer struct {
 	server *http.Server
 	pool   *sync.Map
