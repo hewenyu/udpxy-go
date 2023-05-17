@@ -11,10 +11,15 @@ import (
 	"github.com/pion/rtp"
 )
 
+// get real-time stream
+// search for the public rtsp stream
+
+const TestUrl = "rtsp://rtspstream.com/pattern"
+
 func TestSaveDisk(t *testing.T) {
 	c := gortsplib.Client{}
 
-	u, err := url.Parse("rtsp://124.75.34.37/PLTV/88888888/224/3221226078/00000100000000060000000000000321_0.smil")
+	u, err := url.Parse(TestUrl)
 	if err != nil {
 		t.Fatal(err)
 	}
