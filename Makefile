@@ -11,17 +11,23 @@ BUILD_DIR := build
 OUTPUT_NAME := udpxy-go
 
 # Targets
-all: clean dependencies build build-openwrt
-
+all: clean dependencies build build-openwrt-amd64 build-openwrt-arm build-openwrt-mips
 
 build: mkdir
 	@echo "Building main.go with CGO enabled..."
 	@CGO_ENABLED=0 ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/${OUTPUT_NAME} main.go
 
-
-build-openwrt: mkdir
-	@echo "Building main.go for OpenWrt..."
+build-openwrt-amd64: mkdir
+	@echo "Building main.go for OpenWrt (amd64)..."
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/openwrt_amd64_${OUTPUT_NAME} main.go
+
+build-openwrt-arm: mkdir
+	@echo "Building main.go for OpenWrt (arm)..."
+	@CGO_ENABLED=0 GOOS=linux GOARCH=arm ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/openwrt_arm_${OUTPUT_NAME} main.go
+
+build-openwrt-mips: mkdir
+	@echo "Building main.go for OpenWrt (mips)..."
+	@CGO_ENABLED=0 GOOS=linux GOARCH=mips ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/openwrt_mips_${OUTPUT_NAME} main.go
 
 FORCE:
 
