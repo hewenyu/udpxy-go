@@ -1,121 +1,111 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 )
 
+var addr = flag.String("l", ":18000", "Listening address")
+var iface = flag.String("i", "eth0", "Listening multicast interface")
+var inf *net.Interface
+
 type UDPReceiver struct {
-	conn        *net.UDPConn
-	dataChannel chan []byte
+	conn *net.UDPConn
 }
 
-func (u *UDPReceiver) Start(interfaceName string, port int) error {
-	iface, err := net.InterfaceByName(interfaceName)
+func NewUDPReceiver(address string) (*UDPReceiver, error) {
+	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	addrs, err := iface.Addrs()
+	conn, err := net.ListenMulticastUDP("udp4", inf, addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	ip, _, err := net.ParseCIDR(addrs[0].String())
-	if err != nil {
-		return err
-	}
+	return &UDPReceiver{
+		conn: conn,
+	}, nil
+}
 
-	udpAddr := &net.UDPAddr{
-		IP:   ip,
-		Port: port,
-	}
-	u.conn, err = net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		return err
-	}
+func (u *UDPReceiver) Close() error {
+	return u.conn.Close()
+}
 
-	go func() {
-		buffer := make([]byte, 1024)
-		for {
-			n, _, err := u.conn.ReadFromUDP(buffer)
-			if err != nil {
-				// handle error
-				log.Fatal(err)
-			}
-			// Here you should handle RTP and MPEG-TS payloads
-			u.dataChannel <- buffer[:n]
-		}
-	}()
-	return nil
+func (u *UDPReceiver) CopyTo(w io.Writer) (int64, error) {
+	return io.Copy(w, u.conn)
 }
 
 type HTTPServer struct {
-	server      *http.Server
-	dataChannel chan []byte
+	mux *http.ServeMux
 }
 
-type channelReader struct {
-	ch chan []byte
-}
-
-func (cr *channelReader) Read(p []byte) (n int, err error) {
-	data := <-cr.ch
-	n = copy(p, data)
-	if n < len(data) {
-		err = io.ErrShortBuffer
+func NewHTTPServer() *HTTPServer {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rtp/", handleHTTP)
+	return &HTTPServer{
+		mux: mux,
 	}
-	return n, err
 }
 
 func (h *HTTPServer) Start(address string) error {
-	reader := &channelReader{ch: h.dataChannel}
-
-	h.server = &http.Server{
-		Addr: address,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Here you should parse HTTP commands and act accordingly
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.WriteHeader(http.StatusOK)
-			io.Copy(w, reader)
-		}),
-	}
-
-	go func() {
-		if err := h.server.ListenAndServe(); err != nil {
-			// handle error
-			log.Fatal(err)
-		}
-	}()
-	return nil
+	return http.ListenAndServe(address, h.mux)
 }
 
-// main function as before...
+func handleHTTP(w http.ResponseWriter, req *http.Request) {
+	parts := strings.FieldsFunc(req.URL.Path, func(r rune) bool {
+		return r == '/'
+	})
+
+	if len(parts) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		io.WriteString(w, "No address specified")
+		return
+	}
+
+	raddr := parts[1]
+	receiver, err := NewUDPReceiver(raddr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		io.WriteString(w, err.Error())
+		return
+	}
+	defer receiver.Close()
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.WriteHeader(http.StatusOK)
+
+	n, err := receiver.CopyTo(w)
+	if err != nil {
+		log.Printf("ERR: %v", err)
+		return
+	}
+	log.Printf("%s %s %d [%s]", req.RemoteAddr, req.URL.Path, n, req.UserAgent())
+}
+
 func main() {
-	dataChannel := make(chan []byte, 100)
-
-	udpReceiver := &UDPReceiver{
-		dataChannel: dataChannel,
-	}
-	httpServer := &HTTPServer{
-		dataChannel: dataChannel,
+	if os.Getppid() == 1 {
+		log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	} else {
+		log.SetFlags(log.Lshortfile | log.LstdFlags)
 	}
 
-	err := udpReceiver.Start("eth0", 12345)
+	flag.Parse()
+
+	var err error
+	inf, err = net.InterfaceByName(*iface)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 
-	err = httpServer.Start("localhost:8080")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	server := NewHTTPServer()
 
-	// Prevent the main function from exiting
-	select {}
+	log.Fatal(server.Start(*addr))
 }
