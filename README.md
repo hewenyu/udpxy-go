@@ -1,27 +1,43 @@
-# udpxy-go
-udpxy go 版本的
+# UDPXY-Go
 
-从 eth0 接收UDP多播流，然后通过 eth1 将这些流以HTTP流的形式提供给另一个网络（192.168.1.0/24）
+UDPXY-Go 是一个使用 Go 语言编写的小型 UDP 代理服务器。它可以获取指定的 IGMP 视频流，并通过 HTTP 提供该流。
 
+## 功能介绍
 
+UDPXY-Go 主要提供以下功能：
 
-# 简单设计：
+1. 接受来自客户端的 HTTP 请求，并解析请求中包含的 UDP 地址。
+2. 通过对应的 UDP 地址连接到远程 IGMP 服务器，并获取视频流。
+3. 将视频流作为 HTTP 响应返回给客户端。
 
-UDPReceiver模块：该模块负责接收UDP多播流。它应该有一个Start方法用于开始接收数据，并将接收到的数据写入一个channel。此外，它还需要能够处理RTP和MPEG-TS负载。
+## 逻辑
 
-HTTPServer模块：该模块负责处理HTTP请求。它应该有一个Start方法用于开始监听HTTP请求，并从channel中读取数据，将数据作为HTTP响应发送给客户端。此外，它还需要能够解析HTTP命令，并根据命令执行相应的操作。
+客户端通过发送 HTTP GET 请求到 `/udp/<udp-address>` 路径来启动视频流传输。例如，通过访问 `/udp/233.50.201.142:5140` 可以获取 "igmp://233.50.201.142:5140" 对应的视频流。
 
-CommandHandler模块：该模块负责处理HTTP命令。它应该有一个HandleCommand方法用于处理命令，并返回相应的结果。
+当服务器接收到这样的请求时，它会建立一个到指定 UDP 地址的 IGMP 连接，并开始读取视频流。然后，服务器会将视频流作为 HTTP 响应的内容发送给客户端。
 
-Logger模块：该模块负责记录日志。它应该有一个Log方法用于记录日志信息。
+## 使用方法
 
-Main模块：该模块负责启动UDPReceiver和HTTPServer，以及处理它们之间的数据流
-
-
-# install 
+首先，你需要编译服务器：
 
 ```bash
-sudo apt update
-# for h264 decoder
-sudo apt install libavcodec-dev libavutil-dev libswscale-dev
+make build
 ```
+
+如果你需要为 OpenWrt 构建服务器，可以运行：
+```bash
+make build-openwrt
+```
+
+你可以在 build/ 目录下找到编译好的二进制文件。
+
+然后，你可以运行服务器：
+
+```bash
+./build/udpxy-go
+```
+
+# TODO
+
+* HLS
+* test RTP
