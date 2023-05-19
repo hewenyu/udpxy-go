@@ -26,7 +26,9 @@ make build
 
 如果你需要为 OpenWrt 构建服务器，可以运行：
 ```bash
-make build-openwrt
+make build-openwrt-amd64 
+make build-openwrt-arm 
+make build-openwrt-mips
 ```
 
 你可以在 build/ 目录下找到编译好的二进制文件。
