@@ -28,7 +28,7 @@ func main() {
 	}
 	u.SaveTimeout(timeout)
 
-	router.GET("/udp", u.Serve)
+	router.GET("/udp/:addr", u.Serve)
 
 	router.Run(":9096")
 }

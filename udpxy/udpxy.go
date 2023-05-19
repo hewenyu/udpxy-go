@@ -43,12 +43,13 @@ func (u *Udpxy) Provision() error {
 }
 
 func (u *Udpxy) Serve(c *gin.Context) {
-	parts := strings.FieldsFunc(c.Request.URL.Path, func(r rune) bool { return r == '/' })
-	if len(parts) < 2 {
+	parts := strings.Split(c.Request.URL.Path, "/")
+	if len(parts) < 3 || parts[1] != "udp" {
 		c.String(400, "No address specified")
 		return
 	}
-	raddr := parts[1]
+
+	raddr := parts[2]
 
 	// We need to parse `raddr` into a `*net.UDPAddr` object.
 	addr, err := net.ResolveUDPAddr("udp", raddr)
@@ -62,6 +63,7 @@ func (u *Udpxy) Serve(c *gin.Context) {
 		c.String(500, err.Error())
 		return
 	}
+
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add((u.timeout)))
 	var buf = make([]byte, 1500)
