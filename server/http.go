@@ -1,16 +1,19 @@
-// start http server
 package server
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/hewenyu/udpxy-go/udp"
 	"github.com/hewenyu/udpxy-go/utils"
 )
 
-// HTTPServer  is a HTTP server that serves MPEG-TS over HTTP
+// HTTPServer is a HTTP server that serves MPEG-TS over HTTP
 type HTTPServer struct {
 	server *http.Server
 	pool   *sync.Map
@@ -37,9 +40,31 @@ func (h *HTTPServer) Start(address string, maxConnections int) error {
 			// make sure to release the slot at the end
 			defer func() { <-h.sem }()
 
+			// r.URL.Path should be /udp/233.50.201.118:5140
+			udpAddr := strings.TrimPrefix(r.URL.Path, "/udp/")
+			connKey := r.RemoteAddr + udpAddr + time.Now().Format(time.RFC3339Nano) // use combination of RemoteAddr, udpAddr and timestamp as key
+
+			log.Println("udpAddr:", udpAddr)
+
 			ch := make(chan []byte, 100)
-			h.pool.Store(r, ch)
-			defer h.pool.Delete(r)
+			h.pool.Store(connKey, ch) // store the channel with connKey in the pool
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			udpReceiver := udp.NewUDPReceiver(ch)
+			if err := udpReceiver.Start(ctx, "eth0", udpAddr); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// make sure to stop the UDP receiver when the HTTP request is done
+			go func() {
+				<-r.Context().Done()
+				udpReceiver.Stop()
+				h.pool.Delete(connKey) // delete the channel with connKey from the pool
+				close(ch)              // close the channel
+			}()
 
 			reader := utils.NewChannelReader(ch)
 
@@ -64,7 +89,7 @@ func (h *HTTPServer) Start(address string, maxConnections int) error {
 	return nil
 }
 
-// new
+// NewHTTPServer creates a new HTTPServer instance
 func NewHTTPServer(pool *sync.Map) *HTTPServer {
 	return &HTTPServer{
 		pool: pool,

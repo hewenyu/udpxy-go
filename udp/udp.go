@@ -4,20 +4,17 @@ import (
 	"context"
 	"log"
 	"net"
-	"sync"
 )
 
 // UDPReceiver is a UDP receiver
 type UDPReceiver struct {
-	ctx  context.Context
-	conn *net.UDPConn
-	pool *sync.Map
+	ctx    context.Context
+	conn   *net.UDPConn
+	output chan []byte
 }
 
 // Start listens for UDP packets on the specified interface and multicast address
 func (u *UDPReceiver) Start(ctx context.Context, interfaceName string, multicastAddress string) error {
-	// interfaceName is a string like "eth0"
-	// multicastAddress is a string like "igmp://233.50.201.133:5140"
 	u.ctx = ctx
 
 	iface, err := net.InterfaceByName(interfaceName)
@@ -44,7 +41,6 @@ func (u *UDPReceiver) Start(ctx context.Context, interfaceName string, multicast
 		for {
 			n, _, err := u.conn.ReadFromUDP(buffer)
 			if err != nil {
-				// handle error
 				log.Println(err)
 				continue
 			}
@@ -52,18 +48,10 @@ func (u *UDPReceiver) Start(ctx context.Context, interfaceName string, multicast
 			select {
 			case <-u.ctx.Done():
 				return
+			case u.output <- buffer[:n]: // send the packet to the output channel
 			default:
+				// output channel is full, drop the packet
 			}
-
-			u.pool.Range(func(key, value interface{}) bool {
-				ch := value.(chan []byte)
-				select {
-				case ch <- buffer[:n]:
-				default:
-					// channel is full, drop the packet
-				}
-				return true
-			})
 		}
 	}()
 
@@ -78,9 +66,9 @@ func (u *UDPReceiver) Stop() error {
 	return nil
 }
 
-// new
-func NewUDPReceiver(pool *sync.Map) *UDPReceiver {
+// NewUDPReceiver creates a new UDPReceiver instance
+func NewUDPReceiver(output chan []byte) *UDPReceiver {
 	return &UDPReceiver{
-		pool: pool,
+		output: output,
 	}
 }
