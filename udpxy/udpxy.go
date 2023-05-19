@@ -1,44 +1,34 @@
+// udpxy/udpxy.go
 package udpxy
 
 import (
-	"fmt"
+	"io"
 	"net"
+	"strings"
 	"time"
 
-	"github.com/caddyserver/caddy/v2"
+	"github.com/gin-gonic/gin"
+	"github.com/pion/rtp"
 )
 
-// Register Udpxy module on init
-func init() {
-	caddy.RegisterModule(Udpxy{})
-}
-
-// Udpxy struct with configuration fields and internal fields
 type Udpxy struct {
-	InterfaceName string `json:"interface"`
-	Timeout       string `json:"timeout"`
+	InterfaceName string
+	Timeout       string
 	inteface      *net.Interface
 	timeout       time.Duration
 }
 
-// CaddyModule returns the Caddy module information.
-func (Udpxy) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "http.handlers.udpxy",
-		New: func() caddy.Module { return new(Udpxy) },
-	}
+// save interface
+func (u *Udpxy) SaveInterface(i *net.Interface) {
+	u.inteface = i
 }
 
-// Validate checks if interface is not nil
-func (u *Udpxy) Validate() error {
-	if u.inteface == nil {
-		return fmt.Errorf("no interface")
-	}
-	return nil
+// save interface
+func (u *Udpxy) SaveTimeout(t time.Duration) {
+	u.timeout = t
 }
 
-// Provision initializes and validates the necessary fields in the Udpxy structure
-func (u *Udpxy) Provision(ctx caddy.Context) error {
+func (u *Udpxy) Provision() error {
 	inf, err := net.InterfaceByName(u.InterfaceName)
 	if err != nil {
 		return err
@@ -52,8 +42,63 @@ func (u *Udpxy) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-// Assert interface implementations
-var (
-	_ caddy.Provisioner = (*Udpxy)(nil)
-	_ caddy.Validator   = (*Udpxy)(nil)
-)
+func (u *Udpxy) Serve(c *gin.Context) {
+	parts := strings.FieldsFunc(c.Request.URL.Path, func(r rune) bool { return r == '/' })
+	if len(parts) < 2 {
+		c.String(400, "No address specified")
+		return
+	}
+	raddr := parts[1]
+
+	// We need to parse `raddr` into a `*net.UDPAddr` object.
+	addr, err := net.ResolveUDPAddr("udp", raddr)
+	if err != nil {
+		c.String(500, err.Error())
+		return
+	}
+
+	conn, err := net.ListenMulticastUDP("udp4", u.inteface, addr)
+	if err != nil {
+		c.String(500, err.Error())
+		return
+	}
+	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add((u.timeout)))
+	var buf = make([]byte, 1500)
+	n, err := conn.Read(buf)
+	if err != nil {
+		c.String(500, err.Error())
+		return
+	}
+	conn.SetReadDeadline(time.Time{})
+	p := &rtp.Packet{}
+	headerSent := false
+	for {
+		if err = p.Unmarshal(buf[:n]); err != nil {
+			c.String(500, err.Error())
+			return
+		}
+
+		if !headerSent {
+			headerSent = true
+			if p.PayloadType == RTP_Payload_MP2T {
+				c.Writer.Header().Set("Content-Type", ContentType_MP2T)
+			} else {
+				c.Writer.Header().Set("Content-Type", ContentType_DEFAULT)
+			}
+			c.Writer.WriteHeader(200)
+		}
+
+		if _, werr := c.Writer.Write(p.Payload); werr != nil {
+			break
+		}
+
+		if n, err = conn.Read(buf); err != nil {
+			break
+		}
+	}
+	if err != nil && err != io.EOF {
+		c.String(500, err.Error())
+		return
+	}
+}
