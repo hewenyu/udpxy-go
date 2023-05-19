@@ -30,5 +30,5 @@ func main() {
 
 	router.GET("/udp", u.Serve)
 
-	router.Run(":8080")
+	router.Run(":9096")
 }
