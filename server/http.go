@@ -52,7 +52,7 @@ func (h *HTTPServer) Start(address string, maxConnections int) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			udpReceiver := udp.NewUDPReceiver(ch)
+			udpReceiver := udp.NewUDPReceiver(h.pool)
 			if err := udpReceiver.Start(ctx, "eth0", udpAddr); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
