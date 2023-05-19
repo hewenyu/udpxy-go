@@ -2,7 +2,7 @@
 GO := $(shell which go)
 
 # Build flags
-BUILD_FLAGS = -ldflags "-s -w" 
+BUILD_FLAGS = -ldflags "-s -w -extldflags '-static'" 
 
 # Output directory
 BUILD_DIR := build
@@ -16,12 +16,12 @@ all: clean dependencies build build-openwrt
 
 build: mkdir
 	@echo "Building main.go with CGO enabled..."
-	@CGO_ENABLED=1 ${GO} build ${BUILD_FLAGS} -o ${BUILD_DIR}/${OUTPUT_NAME} main.go
+	@CGO_ENABLED=0 ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/${OUTPUT_NAME} main.go
 
 
 build-openwrt: mkdir
 	@echo "Building main.go for OpenWrt..."
-	@CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ${GO} build ${BUILD_FLAGS} -o ${BUILD_DIR}/openwrt_amd64_${OUTPUT_NAME} main.go
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ${GO} build ${BUILD_FLAGS} -tags netgo -o ${BUILD_DIR}/openwrt_amd64_${OUTPUT_NAME} main.go
 
 FORCE:
 

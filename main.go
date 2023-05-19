@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/hewenyu/udpxy-go/server"
@@ -18,18 +19,22 @@ func main() {
 	httpServer := server.NewHTTPServer(pool)
 
 	// 启动UDPReceiver
-	err := udpReceiver.Start("eth0", "224.0.0.1:12345")
+	err := udpReceiver.Start("eth0", "igmp://233.50.201.133:5140")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	log.Println("start udp success")
+
 	// 启动HTTPServer
-	err = httpServer.Start("localhost:8080", 10)
+	err = httpServer.Start("localhost:9096", 10)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	log.Println("start http success")
 
 	// 阻止主函数退出
 	select {}

@@ -15,14 +15,20 @@ type UDPReceiver struct {
 // Start listens for UDP packets on the specified interface and multicast address
 func (u *UDPReceiver) Start(interfaceName string, multicastAddress string) error {
 	// interfaceName is a string like "eth0"
-	// multicastAddress is a string like "igmp://192.168.199.10:12345"
+	// multicastAddress is a string like "igmp://233.50.201.133:5140"
 
 	iface, err := net.InterfaceByName(interfaceName)
 	if err != nil {
 		return err
 	}
 
-	addr, err := net.ResolveUDPAddr("udp4", multicastAddress)
+	// 使用自定义解析函数
+	address, err := parseAddress(multicastAddress)
+	if err != nil {
+		return err
+	}
+
+	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return err
 	}
