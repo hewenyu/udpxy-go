@@ -1,10 +1,6 @@
 package main
 
 import (
-	"log"
-	"net"
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/hewenyu/udpxy-go/udpxy"
 )
@@ -17,16 +13,10 @@ func main() {
 		Timeout:       "30s",  // your timeout here
 	}
 
-	inf, err := net.InterfaceByName(u.InterfaceName)
+	err := u.Provision()
 	if err != nil {
-		log.Fatalf("error setting interface: %v", err)
+		panic(err)
 	}
-	u.SaveInterface(inf)
-	timeout, err := time.ParseDuration(u.Timeout)
-	if err != nil {
-		log.Fatalf("error parsing duration: %v", err)
-	}
-	u.SaveTimeout(timeout)
 
 	router.GET("/udp/:addr", u.Serve)
 

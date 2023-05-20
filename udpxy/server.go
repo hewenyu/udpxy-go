@@ -23,14 +23,14 @@ func (u *Udpxy) Serve(c *gin.Context) {
 		c.String(500, err.Error())
 		return
 	}
-
+	// check if the address is multicast
 	conn, err := net.ListenMulticastUDP("udp4", u.inteface, addr)
 	if err != nil {
 		c.String(500, err.Error())
 		return
 	}
 	defer conn.Close()
-
+	// set read timeout
 	conn.SetReadDeadline(time.Now().Add((u.timeout)))
 	var buf = make([]byte, 1500)
 	n, err := conn.Read(buf)

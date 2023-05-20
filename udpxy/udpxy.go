@@ -13,16 +13,6 @@ type Udpxy struct {
 	timeout       time.Duration
 }
 
-// save interface
-func (u *Udpxy) SaveInterface(i *net.Interface) {
-	u.inteface = i
-}
-
-// save interface
-func (u *Udpxy) SaveTimeout(t time.Duration) {
-	u.timeout = t
-}
-
 func (u *Udpxy) Provision() error {
 	inf, err := net.InterfaceByName(u.InterfaceName)
 	if err != nil {
