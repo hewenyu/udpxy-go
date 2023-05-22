@@ -20,5 +20,8 @@ func main() {
 
 	router.GET("/udp/:addr", u.Serve)
 
+	// router.GET("/hls", segmenter.ServeHLS)
+	// router.GET("/hls/:segment", segmenter.ServeSegment)
+
 	router.Run(":9096")
 }
