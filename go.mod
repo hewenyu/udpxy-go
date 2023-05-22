@@ -5,13 +5,13 @@ go 1.20
 require (
 	github.com/asticode/go-astits v1.11.0
 	github.com/bluenviron/gortsplib/v3 v3.6.4
+	github.com/bluenviron/mediacommon v0.5.0
 	github.com/gin-gonic/gin v1.9.0
 	github.com/pion/rtp v1.7.13
 )
 
 require (
 	github.com/asticode/go-astikit v0.30.0 // indirect
-	github.com/bluenviron/mediacommon v0.5.0 // indirect
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
