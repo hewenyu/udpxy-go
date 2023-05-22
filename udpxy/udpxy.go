@@ -13,6 +13,7 @@ type Udpxy struct {
 	timeout       time.Duration
 }
 
+// Provision prepares the udpxy instance for use.
 func (u *Udpxy) Provision() error {
 	inf, err := net.InterfaceByName(u.InterfaceName)
 	if err != nil {
